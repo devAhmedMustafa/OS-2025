@@ -9,8 +9,8 @@ package com.mycompany.cli;
  * @author lightum
  */
 public class Parser {
-    String commandName;
-    String[] args;
+    private String commandName;
+    private String[] args;
     
     public boolean parse(String input){
         
