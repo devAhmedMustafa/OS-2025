@@ -104,6 +104,40 @@ public class Terminal {
         }
     }
     
+    public void mkdir(String[] args) {
+        if (args.length == 0) {
+            System.out.println("mkdir: missing operand");
+            return;
+        }
+        
+        for (String dirName : args) {
+            try {
+                Path dirPath;
+                if (Paths.get(dirName).isAbsolute()) {
+                    dirPath = Paths.get(dirName);
+                } else {
+                    dirPath = Paths.get(System.getProperty("user.dir")).resolve(dirName);
+                }
+                
+                File dir = dirPath.toFile();
+                
+                if (dir.exists()) {
+                    System.out.println("mkdir: cannot create directory '" + dirName + "': File exists");
+                    continue;
+                }
+                
+                if (dir.mkdirs()) {
+                    // Directory created successfully
+                } else {
+                    System.out.println("mkdir: cannot create directory '" + dirName + "': No such file or directory");
+                }
+                
+            } catch (Exception e) {
+                System.out.println("mkdir: cannot create directory '" + dirName + "': " + e.getMessage());
+            }
+        }
+    }
+    
     public void chooseCommandAction(){
         Scanner scanner = new Scanner(System.in);
         
@@ -128,6 +162,9 @@ public class Terminal {
                         break;
                     case "ls":
                         ls();
+                        break;
+                    case "mkdir":
+                        mkdir(args);
                         break;
                     case "exit":
                         System.out.println("Goodbye!");
