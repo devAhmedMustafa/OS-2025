@@ -440,6 +440,60 @@ public class Terminal {
         }
     }
     
+    public void wc(String[] args) {
+        if (args.length == 0) {
+            System.out.println("wc: missing file operand");
+            return;
+        }
+        
+        for (String fileName : args) {
+            try {
+                Path filePath;
+                if (Paths.get(fileName).isAbsolute()) {
+                    filePath = Paths.get(fileName);
+                } else {
+                    filePath = Paths.get(System.getProperty("user.dir")).resolve(fileName);
+                }
+                
+                File file = filePath.toFile();
+                
+                if (!file.exists()) {
+                    System.out.println("wc: " + fileName + ": No such file or directory");
+                    continue;
+                }
+                
+                if (!file.isFile()) {
+                    System.out.println("wc: " + fileName + ": Is a directory");
+                    continue;
+                }
+                
+                // Read file content
+                String content = new String(Files.readAllBytes(filePath));
+                
+                // Count lines
+                int lines = content.split("\n", -1).length;
+                if (content.endsWith("\n")) {
+                    lines--; // Don't count empty line at end
+                }
+                
+                // Count words (split by whitespace)
+                String[] words = content.trim().split("\\s+");
+                int wordCount = words.length == 1 && words[0].isEmpty() ? 0 : words.length;
+                
+                // Count characters (including spaces)
+                int characters = content.length();
+                
+                // Display in format: lines words characters filename
+                System.out.println(lines + " " + wordCount + " " + characters + " " + fileName);
+                
+            } catch (IOException e) {
+                System.out.println("wc: " + fileName + ": " + e.getMessage());
+            } catch (Exception e) {
+                System.out.println("wc: " + fileName + ": " + e.getMessage());
+            }
+        }
+    }
+    
     public void chooseCommandAction(){
         Scanner scanner = new Scanner(System.in);
         
@@ -482,6 +536,9 @@ public class Terminal {
                         break;
                     case "cat":
                         cat(args);
+                        break;
+                    case "wc":
+                        wc(args);
                         break;
                     case "exit":
                         System.out.println("Goodbye!");
