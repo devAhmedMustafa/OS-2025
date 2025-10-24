@@ -13,6 +13,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.io.PrintWriter;
+import java.io.FileWriter;
 
 /**
  *
@@ -494,6 +496,110 @@ public class Terminal {
         }
     }
     
+    private boolean hasRedirection(String[] args) {
+        if (args.length == 0) return false;
+        String lastArg = args[args.length - 1];
+        return lastArg.startsWith(">") || lastArg.startsWith(">>");
+    }
+    
+    private String[] getCommandArgs(String[] args) {
+        if (!hasRedirection(args)) return args;
+        String[] commandArgs = new String[args.length - 1];
+        System.arraycopy(args, 0, commandArgs, 0, args.length - 1);
+        return commandArgs;
+    }
+    
+    private String getRedirectionFile(String[] args) {
+        if (!hasRedirection(args)) return null;
+        String lastArg = args[args.length - 1];
+        if (lastArg.startsWith(">>")) {
+            return lastArg.substring(2);
+        } else if (lastArg.startsWith(">")) {
+            return lastArg.substring(1);
+        }
+        return null;
+    }
+    
+    private boolean isAppendRedirection(String[] args) {
+        if (!hasRedirection(args)) return false;
+        String lastArg = args[args.length - 1];
+        return lastArg.startsWith(">>");
+    }
+    
+    private void executeWithRedirection(String command, String[] args, String outputFile, boolean append) {
+        try {
+            // Create a temporary file to capture output
+            File tempFile = File.createTempFile("cli_output", ".tmp");
+            tempFile.deleteOnExit();
+            
+            // Redirect System.out to the temp file
+            PrintWriter originalOut = new PrintWriter(System.out);
+            PrintWriter fileWriter = new PrintWriter(new FileWriter(tempFile));
+            System.setOut(new java.io.PrintStream(new java.io.FileOutputStream(tempFile)));
+            
+            // Execute the command
+            executeCommand(command, getCommandArgs(args));
+            
+            // Restore System.out
+            System.setOut(originalOut);
+            fileWriter.close();
+            
+            // Copy temp file to target file
+            Path tempPath = tempFile.toPath();
+            Path targetPath = Paths.get(System.getProperty("user.dir")).resolve(outputFile);
+            
+            if (append) {
+                // Append to existing file
+                Files.write(targetPath, Files.readAllBytes(tempPath), 
+                          java.nio.file.StandardOpenOption.CREATE, 
+                          java.nio.file.StandardOpenOption.APPEND);
+            } else {
+                // Overwrite file
+                Files.copy(tempPath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            }
+            
+        } catch (Exception e) {
+            System.out.println("Redirection error: " + e.getMessage());
+        }
+    }
+    
+    private void executeCommand(String command, String[] args) {
+        switch (command) {
+            case "pwd":
+                System.out.println(pwd());
+                break;
+            case "cd":
+                cd(args);
+                break;
+            case "ls":
+                ls();
+                break;
+            case "mkdir":
+                mkdir(args);
+                break;
+            case "rmdir":
+                rmdir(args);
+                break;
+            case "touch":
+                touch(args);
+                break;
+            case "cp":
+                cp(args);
+                break;
+            case "rm":
+                rm(args);
+                break;
+            case "cat":
+                cat(args);
+                break;
+            case "wc":
+                wc(args);
+                break;
+            default:
+                System.out.println("Command '" + command + "' not found");
+        }
+    }
+    
     public void chooseCommandAction(){
         Scanner scanner = new Scanner(System.in);
         
@@ -509,43 +615,18 @@ public class Terminal {
                 String command = parser.getCommandName();
                 String[] args = parser.getArgs();
                 
-                switch (command) {
-                    case "pwd":
-                        System.out.println(pwd());
-                        break;
-                    case "cd":
-                        cd(args);
-                        break;
-                    case "ls":
-                        ls();
-                        break;
-                    case "mkdir":
-                        mkdir(args);
-                        break;
-                    case "rmdir":
-                        rmdir(args);
-                        break;
-                    case "touch":
-                        touch(args);
-                        break;
-                    case "cp":
-                        cp(args);
-                        break;
-                    case "rm":
-                        rm(args);
-                        break;
-                    case "cat":
-                        cat(args);
-                        break;
-                    case "wc":
-                        wc(args);
-                        break;
-                    case "exit":
-                        System.out.println("Goodbye!");
-                        scanner.close();
-                        return;
-            default:
-                        System.out.println("Command '" + command + "' not found");
+                if (command.equals("exit")) {
+                    System.out.println("Goodbye!");
+                    scanner.close();
+                    return;
+                }
+                
+                if (hasRedirection(args)) {
+                    String outputFile = getRedirectionFile(args);
+                    boolean append = isAppendRedirection(args);
+                    executeWithRedirection(command, args, outputFile, append);
+                } else {
+                    executeCommand(command, args);
                 }
             } else {
                 System.out.println("Invalid command format");
