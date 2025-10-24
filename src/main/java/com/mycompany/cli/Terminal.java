@@ -5,6 +5,9 @@
 package com.mycompany.cli;
 
 import java.util.Scanner;
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /**
  *
@@ -23,8 +26,59 @@ public class Terminal {
         return System.getProperty("user.dir");
     }
     
-    public void cd(String targetDir){
-        currentDir = targetDir;
+    public void cd(String[] args) {
+        try {
+            String targetDir;
+            
+            if (args.length == 0) {
+                // No arguments - go to home directory
+                targetDir = System.getProperty("user.home");
+            } else if (args.length == 1) {
+                if (args[0].equals("..")) {
+                    // Go to parent directory
+                    Path currentPath = Paths.get(System.getProperty("user.dir"));
+                    Path parentPath = currentPath.getParent();
+                    if (parentPath != null) {
+                        targetDir = parentPath.toString();
+                    } else {
+                        System.out.println("Already at root directory");
+                        return;
+                    }
+                } else {
+                    // Go to specified directory (full or relative path)
+                    targetDir = args[0];
+                }
+            } else {
+                System.out.println("cd: too many arguments");
+                return;
+            }
+            
+            // Resolve the path
+            Path targetPath;
+            if (Paths.get(targetDir).isAbsolute()) {
+                targetPath = Paths.get(targetDir);
+            } else {
+                targetPath = Paths.get(System.getProperty("user.dir")).resolve(targetDir);
+            }
+            
+            // Check if directory exists and is actually a directory
+            File targetFile = targetPath.toFile();
+            if (!targetFile.exists()) {
+                System.out.println("cd: " + targetDir + ": No such file or directory");
+                return;
+            }
+            if (!targetFile.isDirectory()) {
+                System.out.println("cd: " + targetDir + ": Not a directory");
+                return;
+            }
+            
+            // Change to the directory
+            System.setProperty("user.dir", targetPath.toString());
+            currentDir = targetPath.toString();
+            
+        } catch (Exception e) {
+            System.out.println("cd: " + args[0] + ": " + e.getMessage());
+        }
     }
     
     public void chooseCommandAction(){
@@ -45,6 +99,9 @@ public class Terminal {
                 switch (command) {
                     case "pwd":
                         System.out.println(pwd());
+                        break;
+                    case "cd":
+                        cd(args);
                         break;
                     case "exit":
                         System.out.println("Goodbye!");
