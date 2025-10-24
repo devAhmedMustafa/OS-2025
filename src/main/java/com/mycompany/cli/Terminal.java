@@ -8,6 +8,7 @@ import java.util.Scanner;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 
 /**
  *
@@ -81,6 +82,28 @@ public class Terminal {
         }
     }
     
+    public void ls() {
+        try {
+            File currentDirFile = new File(System.getProperty("user.dir"));
+            File[] files = currentDirFile.listFiles();
+            
+            if (files == null) {
+                System.out.println("ls: cannot access current directory");
+                return;
+            }
+            
+            // Sort files alphabetically by name
+            Arrays.sort(files, (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+            
+            for (File file : files) {
+                System.out.println(file.getName());
+            }
+            
+        } catch (Exception e) {
+            System.out.println("ls: " + e.getMessage());
+        }
+    }
+    
     public void chooseCommandAction(){
         Scanner scanner = new Scanner(System.in);
         
@@ -102,6 +125,9 @@ public class Terminal {
                         break;
                     case "cd":
                         cd(args);
+                        break;
+                    case "ls":
+                        ls();
                         break;
                     case "exit":
                         System.out.println("Goodbye!");
