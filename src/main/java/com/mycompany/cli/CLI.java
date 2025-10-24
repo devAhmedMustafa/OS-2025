@@ -7,6 +7,7 @@ package com.mycompany.cli;
 public class CLI {
 
     public static void main(String[] args) {
-        System.out.println("Hello World!");
+        Terminal terminal = new Terminal();
+        terminal.chooseCommandAction();
     }
 }

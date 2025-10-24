@@ -13,14 +13,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
-import java.io.PrintWriter;
-import java.io.FileWriter;
 import java.util.zip.ZipOutputStream;
 import java.util.zip.ZipEntry;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.zip.ZipInputStream;
-import java.util.zip.ZipFile;
 
 /**
  *
@@ -28,42 +25,50 @@ import java.util.zip.ZipFile;
  */
 public class Terminal {
     
-    Parser parser;
-    String currentDir;
+    private Parser parser;
+    private Path currentPath;
     
     public Terminal(){
-        currentDir = System.getProperty("user.dir");
+        parser = new Parser();
+        currentPath = Paths.get(System.getProperty("user.dir"));
     }
     
-    public String pwd() {
-        return System.getProperty("user.dir");
+    public void pwd() {
+        System.out.println(currentPath.toAbsolutePath().toString());
     }
     
     public void cd(String[] args) {
         try {
             String targetDir;
             
-            if (args.length == 0) {
-                // No arguments - go to home directory
-                targetDir = System.getProperty("user.home");
-            } else if (args.length == 1) {
-                if (args[0].equals("..")) {
-                    // Go to parent directory
-                    Path currentPath = Paths.get(System.getProperty("user.dir"));
-                    Path parentPath = currentPath.getParent();
-                    if (parentPath != null) {
-                        targetDir = parentPath.toString();
-                    } else {
-                        System.out.println("Already at root directory");
-                        return;
+            switch (args.length) {
+                case 0:
+                    // No arguments - go to home directory
+                    targetDir = System.getProperty("user.home");
+                    break;
+                case 1:
+                    
+                    if (args[0].startsWith("\"") && args[0].endsWith("\"")){
+                        args[0] = args[0].replaceAll("\"", "");
                     }
-                } else {
-                    // Go to specified directory (full or relative path)
-                    targetDir = args[0];
-                }
-            } else {
-                System.out.println("cd: too many arguments");
-                return;
+                    
+                    if (args[0].equals("..")) {
+                        // Go to parent directory
+                        Path parentPath = currentPath.getParent();
+                        if (parentPath != null) {
+                            targetDir = parentPath.toString();
+                        } else {
+                            System.out.println("Already at root directory");
+                            return;
+                        }
+                    } else {
+                        // Go to specified directory (full or relative path)
+                        targetDir = args[0];
+                        System.out.println("Target Dir: " + targetDir);
+                    }   break;
+                default:
+                    System.out.println("cd: too many arguments");
+                    return;
             }
             
             // Resolve the path
@@ -71,7 +76,7 @@ public class Terminal {
             if (Paths.get(targetDir).isAbsolute()) {
                 targetPath = Paths.get(targetDir);
             } else {
-                targetPath = Paths.get(System.getProperty("user.dir")).resolve(targetDir);
+                targetPath = currentPath.resolve(targetDir);
             }
             
             // Check if directory exists and is actually a directory
@@ -85,9 +90,7 @@ public class Terminal {
                 return;
             }
             
-            // Change to the directory
-            System.setProperty("user.dir", targetPath.toString());
-            currentDir = targetPath.toString();
+            currentPath = targetPath.toAbsolutePath();
             
         } catch (Exception e) {
             System.out.println("cd: " + args[0] + ": " + e.getMessage());
@@ -96,7 +99,7 @@ public class Terminal {
     
     public void ls() {
         try {
-            File currentDirFile = new File(System.getProperty("user.dir"));
+            File currentDirFile = currentPath.toFile();
             File[] files = currentDirFile.listFiles();
             
             if (files == null) {
@@ -128,7 +131,7 @@ public class Terminal {
                 if (Paths.get(dirName).isAbsolute()) {
                     dirPath = Paths.get(dirName);
                 } else {
-                    dirPath = Paths.get(System.getProperty("user.dir")).resolve(dirName);
+                    dirPath = currentPath.resolve(dirName);
                 }
                 
                 File dir = dirPath.toFile();
@@ -159,7 +162,7 @@ public class Terminal {
         if (args.length == 1 && args[0].equals("*")) {
             // Remove all empty directories in current directory
             try {
-                File currentDirFile = new File(System.getProperty("user.dir"));
+                File currentDirFile = currentPath.toFile();
                 File[] files = currentDirFile.listFiles();
                 
                 if (files != null) {
@@ -184,7 +187,7 @@ public class Terminal {
                     if (Paths.get(dirName).isAbsolute()) {
                         dirPath = Paths.get(dirName);
                     } else {
-                        dirPath = Paths.get(System.getProperty("user.dir")).resolve(dirName);
+                        dirPath = currentPath.resolve(dirName);
                     }
                     
                     File dir = dirPath.toFile();
@@ -229,7 +232,7 @@ public class Terminal {
                 if (Paths.get(fileName).isAbsolute()) {
                     filePath = Paths.get(fileName);
                 } else {
-                    filePath = Paths.get(System.getProperty("user.dir")).resolve(fileName);
+                    filePath = currentPath.resolve(fileName);
                 }
                 
                 File file = filePath.toFile();
@@ -291,14 +294,14 @@ public class Terminal {
             if (Paths.get(sourceFile).isAbsolute()) {
                 sourcePath = Paths.get(sourceFile);
             } else {
-                sourcePath = Paths.get(System.getProperty("user.dir")).resolve(sourceFile);
+                sourcePath = currentPath.resolve(sourceFile);
             }
             
             // Resolve destination path
             if (Paths.get(destFile).isAbsolute()) {
                 destPath = Paths.get(destFile);
             } else {
-                destPath = Paths.get(System.getProperty("user.dir")).resolve(destFile);
+                destPath = currentPath.resolve(destFile);
             }
             
             File source = sourcePath.toFile();
@@ -380,7 +383,7 @@ public class Terminal {
                 if (Paths.get(fileName).isAbsolute()) {
                     filePath = Paths.get(fileName);
                 } else {
-                    filePath = Paths.get(System.getProperty("user.dir")).resolve(fileName);
+                    filePath = currentPath.resolve(fileName);
                 }
                 
                 File file = filePath.toFile();
@@ -419,7 +422,7 @@ public class Terminal {
                 if (Paths.get(fileName).isAbsolute()) {
                     filePath = Paths.get(fileName);
                 } else {
-                    filePath = Paths.get(System.getProperty("user.dir")).resolve(fileName);
+                    filePath = currentPath.resolve(fileName);
                 }
                 
                 File file = filePath.toFile();
@@ -460,7 +463,7 @@ public class Terminal {
                 if (Paths.get(fileName).isAbsolute()) {
                     filePath = Paths.get(fileName);
                 } else {
-                    filePath = Paths.get(System.getProperty("user.dir")).resolve(fileName);
+                    filePath = currentPath.resolve(fileName);
                 }
                 
                 File file = filePath.toFile();
@@ -527,7 +530,7 @@ public class Terminal {
             if (Paths.get(zipFileName).isAbsolute()) {
                 zipPath = Paths.get(zipFileName);
             } else {
-                zipPath = Paths.get(System.getProperty("user.dir")).resolve(zipFileName);
+                zipPath = currentPath.resolve(zipFileName);
             }
             
             File zipFile = zipPath.toFile();
@@ -544,7 +547,7 @@ public class Terminal {
                     if (Paths.get(sourceFile).isAbsolute()) {
                         sourcePath = Paths.get(sourceFile);
                     } else {
-                        sourcePath = Paths.get(System.getProperty("user.dir")).resolve(sourceFile);
+                        sourcePath = currentPath.resolve(sourceFile);
                     }
                     
                     File source = sourcePath.toFile();
@@ -621,14 +624,14 @@ public class Terminal {
             if (Paths.get(zipFileName).isAbsolute()) {
                 zipPath = Paths.get(zipFileName);
             } else {
-                zipPath = Paths.get(System.getProperty("user.dir")).resolve(zipFileName);
+                zipPath = currentPath.resolve(zipFileName);
             }
             
             Path destPath;
             if (Paths.get(destDir).isAbsolute()) {
                 destPath = Paths.get(destDir);
             } else {
-                destPath = Paths.get(System.getProperty("user.dir")).resolve(destDir);
+                destPath = currentPath.resolve(destDir);
             }
             
             File zipFile = zipPath.toFile();
@@ -697,7 +700,7 @@ public class Terminal {
     private boolean hasRedirection(String[] args) {
         if (args.length == 0) return false;
         String lastArg = args[args.length - 1];
-        return lastArg.startsWith(">") || lastArg.startsWith(">>");
+        return lastArg.startsWith(">>");
     }
     
     private String[] getCommandArgs(String[] args) {
@@ -742,7 +745,7 @@ public class Terminal {
             
             // Copy temp file to target file
             Path tempPath = tempFile.toPath();
-            Path targetPath = Paths.get(System.getProperty("user.dir")).resolve(outputFile);
+            Path targetPath = currentPath.resolve(outputFile);
             
             if (append) {
                 // Append to existing file
@@ -761,68 +764,43 @@ public class Terminal {
     
     private void executeCommand(String command, String[] args) {
         switch (command) {
-            case "pwd":
-                System.out.println(pwd());
-                break;
-            case "cd":
-                cd(args);
-                break;
-            case "ls":
-                ls();
-                break;
-            case "mkdir":
-                mkdir(args);
-                break;
-            case "rmdir":
-                rmdir(args);
-                break;
-            case "touch":
-                touch(args);
-                break;
-            case "cp":
-                cp(args);
-                break;
-            case "rm":
-                rm(args);
-                break;
-            case "cat":
-                cat(args);
-                break;
-            case "wc":
-                wc(args);
-                break;
-            case "zip":
-                zip(args);
-                break;
-            case "unzip":
-                unzip(args);
-                break;
-            default:
-                System.out.println("Command '" + command + "' not found");
+            case "pwd" -> pwd();
+            case "cd" -> cd(args);
+            case "ls" -> ls();
+            case "mkdir" -> mkdir(args);
+            case "rmdir" -> rmdir(args);
+            case "touch" -> touch(args);
+            case "cp" -> cp(args);
+            case "rm" -> rm(args);
+            case "cat" -> cat(args);
+            case "wc" -> wc(args);
+            case "zip" -> zip(args);
+            case "unzip" -> unzip(args);
+            default -> System.out.println("Command '" + command + "' not found");
         }
     }
     
     public void chooseCommandAction(){
         Scanner scanner = new Scanner(System.in);
-        
-        while (true) {
-            System.out.print(currentDir + "$ ");
+
+        while (true){
+            System.out.print(currentPath.toAbsolutePath().toString() + "$ ");
             String line = scanner.nextLine().trim();
             
-            if (line.isEmpty()) {
+            if (line.isEmpty()){
                 continue;
             }
             
             if (parser.parse(line)) {
                 String command = parser.getCommandName();
                 String[] args = parser.getArgs();
-                
+
                 if (command.equals("exit")) {
                     System.out.println("Goodbye!");
                     scanner.close();
                     return;
                 }
-                
+
                 if (hasRedirection(args)) {
                     String outputFile = getRedirectionFile(args);
                     boolean append = isAppendRedirection(args);
@@ -834,12 +812,6 @@ public class Terminal {
                 System.out.println("Invalid command format");
             }
         }
-    }
-    
-    public static void main(String[] args) {
-        Terminal terminal = new Terminal();
-        terminal.parser = new Parser();
-        terminal.chooseCommandAction();
     }
     
 }
