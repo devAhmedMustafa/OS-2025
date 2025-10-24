@@ -10,6 +10,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 
 /**
  *
@@ -249,6 +251,62 @@ public class Terminal {
         }
     }
     
+    public void cp(String[] args) {
+        if (args.length != 2) {
+            System.out.println("cp: missing file operand");
+            return;
+        }
+        
+        try {
+            String sourceFile = args[0];
+            String destFile = args[1];
+            
+            Path sourcePath;
+            Path destPath;
+            
+            // Resolve source path
+            if (Paths.get(sourceFile).isAbsolute()) {
+                sourcePath = Paths.get(sourceFile);
+            } else {
+                sourcePath = Paths.get(System.getProperty("user.dir")).resolve(sourceFile);
+            }
+            
+            // Resolve destination path
+            if (Paths.get(destFile).isAbsolute()) {
+                destPath = Paths.get(destFile);
+            } else {
+                destPath = Paths.get(System.getProperty("user.dir")).resolve(destFile);
+            }
+            
+            File source = sourcePath.toFile();
+            File dest = destPath.toFile();
+            
+            if (!source.exists()) {
+                System.out.println("cp: cannot stat '" + sourceFile + "': No such file or directory");
+                return;
+            }
+            
+            if (!source.isFile()) {
+                System.out.println("cp: '" + sourceFile + "': Not a regular file");
+                return;
+            }
+            
+            // Create parent directories if they don't exist
+            File parentDir = dest.getParentFile();
+            if (parentDir != null && !parentDir.exists()) {
+                parentDir.mkdirs();
+            }
+            
+            // Copy the file
+            Files.copy(sourcePath, destPath, StandardCopyOption.REPLACE_EXISTING);
+            
+        } catch (IOException e) {
+            System.out.println("cp: cannot copy '" + args[0] + "' to '" + args[1] + "': " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("cp: " + e.getMessage());
+        }
+    }
+    
     public void chooseCommandAction(){
         Scanner scanner = new Scanner(System.in);
         
@@ -282,6 +340,9 @@ public class Terminal {
                         break;
                     case "touch":
                         touch(args);
+                        break;
+                    case "cp":
+                        cp(args);
                         break;
                     case "exit":
                         System.out.println("Goodbye!");
