@@ -19,6 +19,8 @@ import java.util.zip.ZipOutputStream;
 import java.util.zip.ZipEntry;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipFile;
 
 /**
  *
@@ -598,6 +600,100 @@ public class Terminal {
         }
     }
     
+    public void unzip(String[] args) {
+        if (args.length < 1) {
+            System.out.println("unzip: missing zipfile operand");
+            return;
+        }
+        
+        String zipFileName = args[0];
+        String destDir = ".";
+        
+        // Check for -d option (destination directory)
+        if (args.length >= 3 && args[1].equals("-d")) {
+            destDir = args[2];
+        } else if (args.length == 2) {
+            destDir = args[1];
+        }
+        
+        try {
+            Path zipPath;
+            if (Paths.get(zipFileName).isAbsolute()) {
+                zipPath = Paths.get(zipFileName);
+            } else {
+                zipPath = Paths.get(System.getProperty("user.dir")).resolve(zipFileName);
+            }
+            
+            Path destPath;
+            if (Paths.get(destDir).isAbsolute()) {
+                destPath = Paths.get(destDir);
+            } else {
+                destPath = Paths.get(System.getProperty("user.dir")).resolve(destDir);
+            }
+            
+            File zipFile = zipPath.toFile();
+            File destDirFile = destPath.toFile();
+            
+            if (!zipFile.exists()) {
+                System.out.println("unzip: " + zipFileName + ": No such file or directory");
+                return;
+            }
+            
+            if (!zipFile.isFile()) {
+                System.out.println("unzip: " + zipFileName + ": Not a regular file");
+                return;
+            }
+            
+            // Create destination directory if it doesn't exist
+            if (!destDirFile.exists()) {
+                destDirFile.mkdirs();
+            }
+            
+            if (!destDirFile.isDirectory()) {
+                System.out.println("unzip: " + destDir + ": Not a directory");
+                return;
+            }
+            
+            // Extract the zip file
+            try (ZipInputStream zipIn = new ZipInputStream(new FileInputStream(zipFile))) {
+                ZipEntry entry = zipIn.getNextEntry();
+                
+                while (entry != null) {
+                    String filePath = destPath.resolve(entry.getName()).toString();
+                    File file = new File(filePath);
+                    
+                    if (!entry.isDirectory()) {
+                        // Create parent directories if they don't exist
+                        File parentDir = file.getParentFile();
+                        if (parentDir != null && !parentDir.exists()) {
+                            parentDir.mkdirs();
+                        }
+                        
+                        // Extract file
+                        try (FileOutputStream fos = new FileOutputStream(file)) {
+                            byte[] bytes = new byte[1024];
+                            int length;
+                            while ((length = zipIn.read(bytes)) >= 0) {
+                                fos.write(bytes, 0, length);
+                            }
+                        }
+                    } else {
+                        // Create directory
+                        file.mkdirs();
+                    }
+                    
+                    zipIn.closeEntry();
+                    entry = zipIn.getNextEntry();
+                }
+            }
+            
+        } catch (IOException e) {
+            System.out.println("unzip: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("unzip: " + e.getMessage());
+        }
+    }
+    
     private boolean hasRedirection(String[] args) {
         if (args.length == 0) return false;
         String lastArg = args[args.length - 1];
@@ -699,6 +795,9 @@ public class Terminal {
                 break;
             case "zip":
                 zip(args);
+                break;
+            case "unzip":
+                unzip(args);
                 break;
             default:
                 System.out.println("Command '" + command + "' not found");
