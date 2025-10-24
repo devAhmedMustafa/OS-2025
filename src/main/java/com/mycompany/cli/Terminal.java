@@ -20,7 +20,7 @@ public class Terminal {
     }
     
     public String pwd() {
-        return currentDir;
+        return System.getProperty("user.dir");
     }
     
     public void cd(String targetDir){
@@ -29,19 +29,40 @@ public class Terminal {
     
     public void chooseCommandAction(){
         Scanner scanner = new Scanner(System.in);
-        System.out.print(currentDir+"$");
-        String line = scanner.nextLine();
-        scanner.close();
         
-        parser.parse(line);
-        
-        switch (parser.getCommandName()){
-            case "pwd":
-                System.out.println(pwd());
+        while (true) {
+            System.out.print(currentDir + "$ ");
+            String line = scanner.nextLine().trim();
             
-            default:
-                System.out.println("Command "+parser.getCommandName()+ " not found");
+            if (line.isEmpty()) {
+                continue;
+            }
+            
+            if (parser.parse(line)) {
+                String command = parser.getCommandName();
+                String[] args = parser.getArgs();
+                
+                switch (command) {
+                    case "pwd":
+                        System.out.println(pwd());
+                        break;
+                    case "exit":
+                        System.out.println("Goodbye!");
+                        scanner.close();
+                        return;
+                    default:
+                        System.out.println("Command '" + command + "' not found");
+                }
+            } else {
+                System.out.println("Invalid command format");
+            }
         }
+    }
+    
+    public static void main(String[] args) {
+        Terminal terminal = new Terminal();
+        terminal.parser = new Parser();
+        terminal.chooseCommandAction();
     }
     
 }
