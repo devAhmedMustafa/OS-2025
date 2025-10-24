@@ -731,8 +731,7 @@ public class Terminal {
             tempFile.deleteOnExit();
             
             // Redirect System.out to the temp file
-            PrintWriter originalOut = new PrintWriter(System.out);
-            PrintWriter fileWriter = new PrintWriter(new FileWriter(tempFile));
+            java.io.PrintStream originalOut = System.out;
             System.setOut(new java.io.PrintStream(new java.io.FileOutputStream(tempFile)));
             
             // Execute the command
@@ -740,7 +739,6 @@ public class Terminal {
             
             // Restore System.out
             System.setOut(originalOut);
-            fileWriter.close();
             
             // Copy temp file to target file
             Path tempPath = tempFile.toPath();
