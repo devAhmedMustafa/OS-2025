@@ -138,6 +138,73 @@ public class Terminal {
         }
     }
     
+    public void rmdir(String[] args) {
+        if (args.length == 0) {
+            System.out.println("rmdir: missing operand");
+            return;
+        }
+        
+        if (args.length == 1 && args[0].equals("*")) {
+            // Remove all empty directories in current directory
+            try {
+                File currentDirFile = new File(System.getProperty("user.dir"));
+                File[] files = currentDirFile.listFiles();
+                
+                if (files != null) {
+                    for (File file : files) {
+                        if (file.isDirectory() && file.list() != null && file.list().length == 0) {
+                            if (file.delete()) {
+                                System.out.println("Removed directory: " + file.getName());
+                            } else {
+                                System.out.println("rmdir: cannot remove '" + file.getName() + "': Directory not empty or permission denied");
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("rmdir: " + e.getMessage());
+            }
+        } else {
+            // Remove specific directories
+            for (String dirName : args) {
+                try {
+                    Path dirPath;
+                    if (Paths.get(dirName).isAbsolute()) {
+                        dirPath = Paths.get(dirName);
+                    } else {
+                        dirPath = Paths.get(System.getProperty("user.dir")).resolve(dirName);
+                    }
+                    
+                    File dir = dirPath.toFile();
+                    
+                    if (!dir.exists()) {
+                        System.out.println("rmdir: cannot remove '" + dirName + "': No such file or directory");
+                        continue;
+                    }
+                    
+                    if (!dir.isDirectory()) {
+                        System.out.println("rmdir: cannot remove '" + dirName + "': Not a directory");
+                        continue;
+                    }
+                    
+                    if (dir.list() != null && dir.list().length > 0) {
+                        System.out.println("rmdir: cannot remove '" + dirName + "': Directory not empty");
+                        continue;
+                    }
+                    
+                    if (dir.delete()) {
+                        // Directory removed successfully
+                    } else {
+                        System.out.println("rmdir: cannot remove '" + dirName + "': Permission denied");
+                    }
+                    
+                } catch (Exception e) {
+                    System.out.println("rmdir: cannot remove '" + dirName + "': " + e.getMessage());
+                }
+            }
+        }
+    }
+    
     public void chooseCommandAction(){
         Scanner scanner = new Scanner(System.in);
         
@@ -165,6 +232,9 @@ public class Terminal {
                         break;
                     case "mkdir":
                         mkdir(args);
+                        break;
+                    case "rmdir":
+                        rmdir(args);
                         break;
                     case "exit":
                         System.out.println("Goodbye!");
