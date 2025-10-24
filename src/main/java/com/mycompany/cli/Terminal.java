@@ -9,6 +9,7 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.io.IOException;
 
 /**
  *
@@ -205,6 +206,49 @@ public class Terminal {
         }
     }
     
+    public void touch(String[] args) {
+        if (args.length == 0) {
+            System.out.println("touch: missing file operand");
+            return;
+        }
+        
+        for (String fileName : args) {
+            try {
+                Path filePath;
+                if (Paths.get(fileName).isAbsolute()) {
+                    filePath = Paths.get(fileName);
+                } else {
+                    filePath = Paths.get(System.getProperty("user.dir")).resolve(fileName);
+                }
+                
+                File file = filePath.toFile();
+                
+                if (file.exists()) {
+                    // File exists, update its timestamp
+                    file.setLastModified(System.currentTimeMillis());
+                } else {
+                    // Create parent directories if they don't exist
+                    File parentDir = file.getParentFile();
+                    if (parentDir != null && !parentDir.exists()) {
+                        parentDir.mkdirs();
+                    }
+                    
+                    // Create the file
+                    if (file.createNewFile()) {
+                        // File created successfully
+                    } else {
+                        System.out.println("touch: cannot create file '" + fileName + "': Permission denied");
+                    }
+                }
+                
+            } catch (IOException e) {
+                System.out.println("touch: cannot create file '" + fileName + "': " + e.getMessage());
+            } catch (Exception e) {
+                System.out.println("touch: cannot create file '" + fileName + "': " + e.getMessage());
+            }
+        }
+    }
+    
     public void chooseCommandAction(){
         Scanner scanner = new Scanner(System.in);
         
@@ -235,6 +279,9 @@ public class Terminal {
                         break;
                     case "rmdir":
                         rmdir(args);
+                        break;
+                    case "touch":
+                        touch(args);
                         break;
                     case "exit":
                         System.out.println("Goodbye!");
