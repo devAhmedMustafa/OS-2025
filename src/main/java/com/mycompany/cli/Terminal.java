@@ -359,6 +359,45 @@ public class Terminal {
         });
     }
     
+    public void rm(String[] args) {
+        if (args.length == 0) {
+            System.out.println("rm: missing operand");
+            return;
+        }
+        
+        for (String fileName : args) {
+            try {
+                Path filePath;
+                if (Paths.get(fileName).isAbsolute()) {
+                    filePath = Paths.get(fileName);
+                } else {
+                    filePath = Paths.get(System.getProperty("user.dir")).resolve(fileName);
+                }
+                
+                File file = filePath.toFile();
+                
+                if (!file.exists()) {
+                    System.out.println("rm: cannot remove '" + fileName + "': No such file or directory");
+                    continue;
+                }
+                
+                if (!file.isFile()) {
+                    System.out.println("rm: cannot remove '" + fileName + "': Is a directory");
+                    continue;
+                }
+                
+                if (file.delete()) {
+                    // File removed successfully
+                } else {
+                    System.out.println("rm: cannot remove '" + fileName + "': Permission denied");
+                }
+                
+            } catch (Exception e) {
+                System.out.println("rm: cannot remove '" + fileName + "': " + e.getMessage());
+            }
+        }
+    }
+    
     public void chooseCommandAction(){
         Scanner scanner = new Scanner(System.in);
         
@@ -395,6 +434,9 @@ public class Terminal {
                         break;
                     case "cp":
                         cp(args);
+                        break;
+                    case "rm":
+                        rm(args);
                         break;
                     case "exit":
                         System.out.println("Goodbye!");
