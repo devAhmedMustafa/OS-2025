@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 
 /**
  *
@@ -398,6 +399,47 @@ public class Terminal {
         }
     }
     
+    public void cat(String[] args) {
+        if (args.length == 0) {
+            System.out.println("cat: missing file operand");
+            return;
+        }
+        
+        for (String fileName : args) {
+            try {
+                Path filePath;
+                if (Paths.get(fileName).isAbsolute()) {
+                    filePath = Paths.get(fileName);
+                } else {
+                    filePath = Paths.get(System.getProperty("user.dir")).resolve(fileName);
+                }
+                
+                File file = filePath.toFile();
+                
+                if (!file.exists()) {
+                    System.out.println("cat: " + fileName + ": No such file or directory");
+                    continue;
+                }
+                
+                if (!file.isFile()) {
+                    System.out.println("cat: " + fileName + ": Is a directory");
+                    continue;
+                }
+                
+                // Read and display file contents
+                List<String> lines = Files.readAllLines(filePath);
+                for (String line : lines) {
+                    System.out.println(line);
+                }
+                
+            } catch (IOException e) {
+                System.out.println("cat: " + fileName + ": " + e.getMessage());
+            } catch (Exception e) {
+                System.out.println("cat: " + fileName + ": " + e.getMessage());
+            }
+        }
+    }
+    
     public void chooseCommandAction(){
         Scanner scanner = new Scanner(System.in);
         
@@ -438,11 +480,14 @@ public class Terminal {
                     case "rm":
                         rm(args);
                         break;
+                    case "cat":
+                        cat(args);
+                        break;
                     case "exit":
                         System.out.println("Goodbye!");
                         scanner.close();
                         return;
-                    default:
+            default:
                         System.out.println("Command '" + command + "' not found");
                 }
             } else {
