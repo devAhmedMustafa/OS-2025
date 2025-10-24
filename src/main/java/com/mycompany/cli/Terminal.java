@@ -15,6 +15,10 @@ import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.io.PrintWriter;
 import java.io.FileWriter;
+import java.util.zip.ZipOutputStream;
+import java.util.zip.ZipEntry;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 
 /**
  *
@@ -496,6 +500,104 @@ public class Terminal {
         }
     }
     
+    public void zip(String[] args) {
+        if (args.length < 2) {
+            System.out.println("zip: missing operand");
+            return;
+        }
+        
+        boolean recursive = false;
+        String zipFileName;
+        String[] sourceFiles;
+        
+        // Check for -r flag
+        if (args.length >= 3 && args[0].equals("-r")) {
+            recursive = true;
+            zipFileName = args[1];
+            sourceFiles = Arrays.copyOfRange(args, 2, args.length);
+        } else {
+            zipFileName = args[0];
+            sourceFiles = Arrays.copyOfRange(args, 1, args.length);
+        }
+        
+        try {
+            Path zipPath;
+            if (Paths.get(zipFileName).isAbsolute()) {
+                zipPath = Paths.get(zipFileName);
+            } else {
+                zipPath = Paths.get(System.getProperty("user.dir")).resolve(zipFileName);
+            }
+            
+            File zipFile = zipPath.toFile();
+            
+            // Create parent directories if they don't exist
+            File parentDir = zipFile.getParentFile();
+            if (parentDir != null && !parentDir.exists()) {
+                parentDir.mkdirs();
+            }
+            
+            try (ZipOutputStream zipOut = new ZipOutputStream(new FileOutputStream(zipFile))) {
+                for (String sourceFile : sourceFiles) {
+                    Path sourcePath;
+                    if (Paths.get(sourceFile).isAbsolute()) {
+                        sourcePath = Paths.get(sourceFile);
+                    } else {
+                        sourcePath = Paths.get(System.getProperty("user.dir")).resolve(sourceFile);
+                    }
+                    
+                    File source = sourcePath.toFile();
+                    
+                    if (!source.exists()) {
+                        System.out.println("zip: " + sourceFile + ": No such file or directory");
+                        continue;
+                    }
+                    
+                    if (recursive && source.isDirectory()) {
+                        addDirectoryToZip(source, source.getName(), zipOut);
+                    } else if (source.isFile()) {
+                        addFileToZip(source, source.getName(), zipOut);
+                    } else {
+                        System.out.println("zip: " + sourceFile + ": Not a regular file");
+                    }
+                }
+            }
+            
+        } catch (IOException e) {
+            System.out.println("zip: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("zip: " + e.getMessage());
+        }
+    }
+    
+    private void addFileToZip(File file, String entryName, ZipOutputStream zipOut) throws IOException {
+        try (FileInputStream fis = new FileInputStream(file)) {
+            ZipEntry zipEntry = new ZipEntry(entryName);
+            zipOut.putNextEntry(zipEntry);
+            
+            byte[] bytes = new byte[1024];
+            int length;
+            while ((length = fis.read(bytes)) >= 0) {
+                zipOut.write(bytes, 0, length);
+            }
+            
+            zipOut.closeEntry();
+        }
+    }
+    
+    private void addDirectoryToZip(File dir, String baseName, ZipOutputStream zipOut) throws IOException {
+        File[] files = dir.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                String entryName = baseName + "/" + file.getName();
+                if (file.isDirectory()) {
+                    addDirectoryToZip(file, entryName, zipOut);
+                } else {
+                    addFileToZip(file, entryName, zipOut);
+                }
+            }
+        }
+    }
+    
     private boolean hasRedirection(String[] args) {
         if (args.length == 0) return false;
         String lastArg = args[args.length - 1];
@@ -594,6 +696,9 @@ public class Terminal {
                 break;
             case "wc":
                 wc(args);
+                break;
+            case "zip":
+                zip(args);
                 break;
             default:
                 System.out.println("Command '" + command + "' not found");
