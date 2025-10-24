@@ -252,15 +252,29 @@ public class Terminal {
     }
     
     public void cp(String[] args) {
-        if (args.length != 2) {
+        if (args.length < 2) {
             System.out.println("cp: missing file operand");
             return;
         }
         
+        boolean recursive = false;
+        String sourceFile;
+        String destFile;
+        
+        // Check for -r flag
+        if (args.length == 3 && args[0].equals("-r")) {
+            recursive = true;
+            sourceFile = args[1];
+            destFile = args[2];
+        } else if (args.length == 2) {
+            sourceFile = args[0];
+            destFile = args[1];
+        } else {
+            System.out.println("cp: invalid arguments");
+            return;
+        }
+        
         try {
-            String sourceFile = args[0];
-            String destFile = args[1];
-            
             Path sourcePath;
             Path destPath;
             
@@ -286,25 +300,63 @@ public class Terminal {
                 return;
             }
             
-            if (!source.isFile()) {
-                System.out.println("cp: '" + sourceFile + "': Not a regular file");
-                return;
+            if (recursive) {
+                // Recursive copy for directories
+                if (!source.isDirectory()) {
+                    System.out.println("cp: '" + sourceFile + "': Not a directory");
+                    return;
+                }
+                
+                if (dest.exists() && !dest.isDirectory()) {
+                    System.out.println("cp: '" + destFile + "': Not a directory");
+                    return;
+                }
+                
+                // Create destination directory if it doesn't exist
+                if (!dest.exists()) {
+                    dest.mkdirs();
+                }
+                
+                // Copy directory recursively
+                copyDirectoryRecursively(sourcePath, destPath);
+                
+            } else {
+                // Regular file copy
+                if (!source.isFile()) {
+                    System.out.println("cp: '" + sourceFile + "': Not a regular file");
+                    return;
+                }
+                
+                // Create parent directories if they don't exist
+                File parentDir = dest.getParentFile();
+                if (parentDir != null && !parentDir.exists()) {
+                    parentDir.mkdirs();
+                }
+                
+                // Copy the file
+                Files.copy(sourcePath, destPath, StandardCopyOption.REPLACE_EXISTING);
             }
-            
-            // Create parent directories if they don't exist
-            File parentDir = dest.getParentFile();
-            if (parentDir != null && !parentDir.exists()) {
-                parentDir.mkdirs();
-            }
-            
-            // Copy the file
-            Files.copy(sourcePath, destPath, StandardCopyOption.REPLACE_EXISTING);
             
         } catch (IOException e) {
-            System.out.println("cp: cannot copy '" + args[0] + "' to '" + args[1] + "': " + e.getMessage());
+            System.out.println("cp: cannot copy '" + sourceFile + "' to '" + destFile + "': " + e.getMessage());
         } catch (Exception e) {
             System.out.println("cp: " + e.getMessage());
         }
+    }
+    
+    private void copyDirectoryRecursively(Path source, Path dest) throws IOException {
+        Files.walk(source).forEach(sourcePath -> {
+            try {
+                Path destPath = dest.resolve(source.relativize(sourcePath));
+                if (Files.isDirectory(sourcePath)) {
+                    Files.createDirectories(destPath);
+                } else {
+                    Files.copy(sourcePath, destPath, StandardCopyOption.REPLACE_EXISTING);
+                }
+            } catch (IOException e) {
+                System.out.println("cp: error copying '" + sourcePath + "': " + e.getMessage());
+            }
+        });
     }
     
     public void chooseCommandAction(){
