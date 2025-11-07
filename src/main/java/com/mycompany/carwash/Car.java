@@ -5,55 +5,36 @@
 package com.mycompany.carwash;
 
 import java.util.Queue;
-import java.util.concurrent.locks.Lock;
 
 /** id: 20220684
  *
  * @author lightum
  */
-class Car extends Thread {
-  private static int carCounter = 1;
-    private final int id;
-    private final Queue<Car> waitingQueue;
-    private final CustomSemaphore empty;
-    private final CustomSemaphore full;
-    private final Lock mutex;
-    private final ServiceStation gui;
+// Car.java
+public class Car extends Thread {
+    private final int number;
+    private Queue<Car> queue;
+    private Semaphore mutex, empty, full;
 
-    public Car(Queue<Car> waitingQueue, CustomSemaphore empty, CustomSemaphore full, Lock mutex, ServiceStation gui) {
-        this.id = carCounter++;
-        this.waitingQueue = waitingQueue;
+    public Car(int id, Queue<Car> queue, Semaphore mutex, Semaphore empty, Semaphore full) {
+        this.number = id;
+        this.queue = queue;
+        this.mutex = mutex;
         this.empty = empty;
         this.full = full;
-        this.mutex = mutex;
-        this.gui = gui;
+    }
+    
+    public int getNumber(){
+        return this.number;
     }
 
-    public int getCarId() {
-        return id;
-    }
-
-    @Override
     public void run() {
-        gui.logActivity("Car C" + id + " arrived");
-
-        try {
-            empty.acquire();
-
-            mutex.lock();
-            try {
-                waitingQueue.add(this);
-                gui.logActivity("Car C" + id + " enters the queue. Queue size: " + waitingQueue.size());
-                gui.updateQueueDisplay(waitingQueue.size());
-            } finally {
-                mutex.unlock();
-            }
-
-            full.release();
-
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            gui.logActivity("Car C" + id + " arrival interrupted.");
-        }
+        System.out.println("Car " + number + " arrives.");
+        empty.P();
+        mutex.P();
+        queue.add(this);
+        System.out.println("Car " + number + " enters waiting queue.");
+        mutex.V();
+        full.V();
     }
 }
