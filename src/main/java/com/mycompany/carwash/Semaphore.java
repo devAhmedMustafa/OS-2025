@@ -16,18 +16,18 @@ public class Semaphore {
     }
     
     public synchronized void P(){
-        value--;
-
         while (value < 0) {
             try {
                 wait();
             } catch (InterruptedException e) {
             }
         }
+        value--;
+
     }
     
     public synchronized void V(){
         value++;
-        if (value <= 0) notify();
+        notifyAll();
     }
 }
